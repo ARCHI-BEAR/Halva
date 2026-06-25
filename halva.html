@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Халва - Магазин сладостей и не только</title>
+    <!-- Yandex Maps API -->
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=ваш_api_ключ_можно_подставить_но_и_без_ключа_работает_гео"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #fef5e8;
+            color: #3e2a1f;
+        }
+
+        /* Header & Navigation */
+        header {
+            background: #fff6e5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            border-bottom: 2px solid #f3d9b1;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #c47b2e;
+            letter-spacing: 2px;
+        }
+        .logo span {
+            color: #a55117;
+        }
+
+        nav a {
+            margin: 0 12px;
+            text-decoration: none;
+            color: #5a3e2b;
+            font-weight: 500;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        nav a:hover, nav a.active {
+            color: #c96f1e;
+            border-bottom: 2px solid #c96f1e;
+            padding-bottom: 4px;
+        }
+
+        .user-area {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            background: #e9c996;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #3e2a1f;
+        }
+        .btn-primary {
+            background: #c5711e;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #a85b16;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        .page {
+            display: none;
+            animation: fade 0.3s;
+        }
+        .active-page {
+            display: block;
+        }
+        @keyframes fade {
+            from { opacity: 0; } to { opacity: 1; }
+        }
+
+        /* cards */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        .product-card {
+            background: white;
+            border-radius: 24px;
+            padding: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            transition: 0.2s;
+        }
+        .product-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 16px;
+            background: #f7e9d7;
+        }
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        .filters input, .filters select {
+            padding: 8px 12px;
+            border-radius: 30px;
+            border: 1px solid #ebd5b3;
+            background: white;
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #f0e0cb;
+            padding: 12px 0;
+        }
+        .total {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin: 15px 0;
+            text-align: right;
+        }
+        .form-row {
+            margin: 12px 0;
+        }
+        .form-row input, .form-row select, textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #e2caa8;
+        }
+        .map-placeholder {
+            height: 280px;
+            background: #e9dbc9;
+            border-radius: 24px;
+            margin: 20px 0;
+        }
+        .lottery-card {
+            background: #fff3e0;
+            border-radius: 32px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .admin-panel {
+            background: #2a241e;
+            color: #ffefdb;
+            padding: 20px;
+            border-radius: 30px;
+            margin-top: 20px;
+        }
+        @media (max-width: 700px) {
+            header { flex-direction: column; gap: 12px; }
+            nav { margin: 8px 0; }
+        }
+        button:disabled {
+            opacity: 0.5;
+        }
+        .badge {
+            background: #c5711e;
+            border-radius: 50px;
+            padding: 2px 10px;
+            color: white;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">Халва <span></span></div>
+    <nav>
+        <a data-page="home" >Главная</a>
+        <a data-page="shop">Товары</a>
+        <a data-page="cart">Корзина</a>
+        <a data-page="lottery">Лотерея</a>
+        <a data-page="profile" id="profileNavLink">Личный кабинет</a>
+        <a data-page="admin" id="adminNavLink" style="display:none;">Админ панель</a>
+    </nav>
+    <div class="user-area" id="authWidget">
+        <button id="loginBtn" class="btn">Войти</button>
+        <button id="registerBtn" class="btn btn-primary">Регистрация</button>
+        <span id="userNameDisplay" style="display:none; font-weight:bold;"></span>
+        <button id="logoutBtn" style="display:none;" class="btn">Выйти</button>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Главная -->
+    <div id="homePage" class="page active-page">
+        <h2>🍯 Добро пожаловать в Халва!</h2>
+        <p>Магазин вкусных продуктов, техники, игрушек и не только. У нас вы найдете всё для дома и души.</p>
+        <h3>📍 Наш магазин</h3>
+        <div id="map" class="map-placeholder"></div>
+        <h3>📞 Контакты</h3>
+        <p>Телефон: +7 (495) 123-45-67<br>Email: hello@halva.shop<br>Адрес: г. Москва, ул. Сладкая, д. 10</p>
+    </div>
+
+    <!-- Товары -->
+    <div id="shopPage" class="page">
+        <div class="filters">
+            <input type="text" id="searchInput" placeholder="🔍 Поиск товаров...">
+            <select id="categoryFilter">
+                <option value="all">Все категории</option>
+                <option value="Продукты">Продукты</option>
+                <option value="Бытовая техника">Бытовая техника</option>
+                <option value="Детские игрушки">Детские игрушки</option>
+                <option value="Хоз товары">Хоз товары</option>
+                <option value="Канцелярия">Канцелярия</option>
+                <option value="Алкоголь">Алкоголь</option>
+            </select>
+        </div>
+        <div id="productsList" class="products-grid"></div>
+    </div>
+
+    <!-- Корзина -->
+    <div id="cartPage" class="page">
+        <h2>🛒 Моя корзина</h2>
+        <div id="cartItems"></div>
+        <div class="total" id="cartTotal"></div>
+        <div style="display: flex; gap: 15px;">
+            <button id="checkoutOrderBtn" class="btn btn-primary">Заказать (доставка)</button>
+            <button id="checkoutBookingBtn" class="btn">Забронировать (самовывоз)</button>
+        </div>
+    </div>
+
+    <!-- Лотерея -->
+    <div id="lotteryPage" class="page">
+        <div class="lottery-card" id="lotteryInfo">
+            <h2>🎟️ Мега Лотерея «Халва Джекпот»</h2>
+            <p id="lotteryDesc">Розыгрыш супер-приза: поездка в Турцию + 100 кг халвы! Билет всего 150₽. Шанс на миллион сладостей! Максимум 5 билетов на человека.</p>
+            <h3>🏆 Возможный выигрыш: Круиз и пожизненный запас халвы 🍬</h3>
+            <p>Цена билета: 150 руб.</p>
+            <div>
+                <label>Количество билетов (1-5): </label>
+                <input type="number" id="ticketCount" min="1" max="5" value="1">
+                <button id="buyLotteryBtn" class="btn btn-primary">Купить билет (картой онлайн / перевод)</button>
+            </div>
+            <p id="lotteryMsg" style="margin-top: 10px;"></p>
+        </div>
+        <div class="admin-edit-lottery" id="adminLotterySection" style="display:none; margin-top:20px;">
+            <h3>Редактирование лотереи (Админ)</h3>
+            <input type="text" id="editLotteryTitle" placeholder="Название лотереи">
+            <textarea id="editLotteryDesc" rows="2" placeholder="Описание и выигрыш"></textarea>
+            <button id="updateLotteryBtn" class="btn">Обновить информацию</button>
+        </div>
+    </div>
+
+    <!-- Личный кабинет -->
+    <div id="profilePage" class="page">
+        <h2>👤 Личный кабинет</h2>
+        <div id="profileOrders"><strong>История заказов/бронирований:</strong><br><span id="ordersList">—</span></div>
+        <div id="profileLotteries"><strong>Мои лотерейные билеты:</strong><br><span id="ticketsList">—</span><br><span>Куплено билетов: <span id="ticketsCount">0</span> / 5</span></div>
+        <div id="profilePurchases"><strong>Покупки (товары):</strong><br><span id="purchasesList">—</span></div>
+    </div>
+
+    <!-- Админ панель (скрыта) -->
+    <div id="adminPage" class="page">
+        <div class="admin-panel">
+            <h2>🔧 Администрирование товаров</h2>
+            <div><input type="text" id="newProductName" placeholder="Название"> <input type="text" id="newProductCategory" placeholder="Категория"> <input type="number" id="newProductPrice" placeholder="Цена"> <input type="number" id="newProductStock" placeholder="Кол-во"> <textarea id="newProductDesc" placeholder="Описание"></textarea> <button id="addProductBtn">➕ Добавить товар</button></div>
+            <hr>
+            <div id="adminProductsList"></div>
+            <button id="refreshAdminProducts">Обновить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- Данные ----------
+    let currentUser = null; // {login, isAdmin, purchases, orders, lotteryTickets }
+    let users = []; // массив пользователей
+    let products = [
+        { id: 1, name: "Халва подсолнечная", category: "Продукты", price: 350, stock: 20, desc: "Классическая рассыпчатая халва", img: "https://main-cdn.sbermegamarket.ru/big1/hlr-system/-19/309/845/233/622/37/100048522339b0.jpg" },
+        { id: 2, name: "Микроволновая печь", category: "Бытовая техника", price: 4990, stock: 5, desc: "Мощность 800Вт", img: "https://s3.e2e4.ru/imgproxy/1787431"},
+        { id: 3, name: "Медведь плюшевый", category: "Детские игрушки", price: 890, stock: 12, desc: "Мягкая игрушка 50см", img: "https://basket-16.wbbasket.ru/vol2523/part252309/252309841/images/c246x328/16.webp" },
+        { id: 4, name: "Средство для мытья стекол", category: "Хоз товары", price: 220, stock: 33, desc: "Пенный спрей", img: "https://avatars.mds.yandex.net/get-mpic/3927509/2a00000194242d030dcbf0d5a4ec494f661f/orig" },
+        { id: 5, name: "Ручка гелевая", category: "Канцелярия", price: 45, stock: 100, desc: "Синяя", img: "https://аврора-канц.рф/upload/iblock/593/593bb9964277c35875713a382b6eae25.jpg" },
+        { id: 6, name: "Вино красное", category: "Алкоголь", price: 650, stock: 8, desc: "Сухое, 0.75", img: "https://main-cdn.sbermegamarket.ru/big2/hlr-system/741/869/358/121/522/13/100063262585b0.jpg" }
+    ];
+    let cart = []; // { id, quantity }
+    let lotteryInfo = {
+        title: "🎁 Мега Лотерея «Халва Джекпот»",
+        description: "Розыгрыш супер-приза: поездка в Турцию + 100 кг халвы! Билет всего 150₽. Шанс на миллион сладостей!",
+        win: "Круиз и пожизненный запас халвы 🍬"
+    };
+
+    // Вспомогательные функции сохранения в localStorage
+    function saveData() {
+        localStorage.setItem("users", JSON.stringify(users));
+        localStorage.setItem("products", JSON.stringify(products));
+        localStorage.setItem("lotteryInfo", JSON.stringify(lotteryInfo));
+        if(currentUser) localStorage.setItem("currentUser", JSON.stringify(currentUser));
+        else localStorage.removeItem("currentUser");
+    }
+    function loadData() {
+        let storedUsers = localStorage.getItem("users");
+        if(storedUsers) users = JSON.parse(storedUsers);
+        else users = [{ login: "admin", password: "admin123", isAdmin: true, purchases: [], orders: [], lotteryTickets: 0 }];
+        let storedProducts = localStorage.getItem("products");
+        if(storedProducts) products = JSON.parse(storedProducts);
+        let storedLottery = localStorage.getItem("lotteryInfo");
+        if(storedLottery) lotteryInfo = JSON.parse(storedLottery);
+        let storedCurUser = localStorage.getItem("currentUser");
+        if(storedCurUser) currentUser = JSON.parse(storedCurUser);
+        else currentUser = null;
+    }
+    // рендер товаров в магазине
+    function renderShop() {
+        let cat = document.getElementById("categoryFilter").value;
+        let search = document.getElementById("searchInput").value.toLowerCase();
+        let filtered = products.filter(p => (cat === "all" || p.category === cat) && p.name.toLowerCase().includes(search));
+        const container = document.getElementById("productsList");
+        container.innerHTML = filtered.map(p => `
+            <div class="product-card">
+                <img src="${p.img}" alt="${p.name}">
+                <h3>${p.name}</h3>
+                <p>${p.desc}</p>
+                <p>💰 ${p.price} ₽</p>
+                <p>📦 В наличии: ${p.stock}</p>
+                <button class="btn addToCartBtn" data-id="${p.id}" ${p.stock<=0 ? 'disabled' : ''}>🍬 В корзину</button>
+            </div>
+        `).join("");
+        document.querySelectorAll(".addToCartBtn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                let id = parseInt(btn.dataset.id);
+                addToCart(id);
+            });
+        });
+    }
+    function addToCart(productId) {
+        if(!currentUser) { alert("Для покупок необходимо войти в аккаунт!"); return; }
+        let product = products.find(p=>p.id===productId);
+        if(!product) return;
+        let existing = cart.find(c=>c.id===productId);
+        if(existing) existing.quantity++;
+        else cart.push({id: productId, quantity: 1});
+        alert(`${product.name} добавлен в корзину`);
+        renderCart();
+    }
+    function renderCart() {
+        let cartContainer = document.getElementById("cartItems");
+        if(!cartContainer) return;
+        if(cart.length===0) { cartContainer.innerHTML = "<p>Корзина пуста</p>"; document.getElementById("cartTotal").innerText = "0 ₽"; return; }
+        let itemsHtml = "";
+        let total=0;
+        cart.forEach(item => {
+            let prod = products.find(p=>p.id===item.id);
+            if(!prod) return;
+            let subtotal = prod.price * item.quantity;
+            total+=subtotal;
+            itemsHtml += `<div class="cart-item"><div><b>${prod.name}</b> x ${item.quantity} = ${subtotal} ₽</div><div><button class="btn" onclick="changeQty(${item.id}, -1)">-</button> <button class="btn" onclick="changeQty(${item.id}, 1)">+</button> <button class="btn" onclick="removeFromCart(${item.id})">Удалить</button></div></div>`;
+        });
+        cartContainer.innerHTML = itemsHtml;
+        document.getElementById("cartTotal").innerText = total + " ₽";
+    }
+    window.changeQty = (id, delta) => {
+        let idx = cart.findIndex(c=>c.id===id);
+        if(idx!==-1){
+            cart[idx].quantity += delta;
+            if(cart[idx].quantity <=0) cart.splice(idx,1);
+            renderCart();
+        }
+    };
+    window.removeFromCart = (id) => {
+        cart = cart.filter(c=>c.id!==id);
+        renderCart();
+    };
+    function clearCart() { cart=[]; renderCart(); }
+    // Заказ / бронь формы
+    function createOrderForm(isDelivery) {
+        let fields = `<div class="form-row"><input id="fullName" placeholder="ФИО" required></div>
+        ${isDelivery ? '<div class="form-row"><input id="address" placeholder="Адрес доставки"></div>' : ''}
+        <div class="form-row"><input id="date" type="date" placeholder="Дата"></div>
+        <div class="form-row"><input id="time" type="time" placeholder="Время"></div>
+        <div class="form-row"><input id="phone" placeholder="Номер телефона"></div>
+        <div class="form-row"><textarea id="comment" placeholder="Комментарий"></textarea></div>
+        <div class="form-row"><select id="payment"><option value="Наличные курьеру">Наличные курьеру</option><option value="Картой при получении">Картой при получении</option><option value="Картой онлайн">Картой онлайн</option><option value="Перевод">Перевод</option></select></div>`;
+        return fields;
+    }
+    document.getElementById("checkoutOrderBtn").onclick = () => {
+        if(!currentUser) { alert("Войдите в аккаунт"); return; }
+        if(cart.length===0) { alert("Корзина пуста"); return; }
+        let form = promptForForm(true);
+    };
+    document.getElementById("checkoutBookingBtn").onclick = () => {
+        if(!currentUser) { alert("Войдите в аккаунт"); return; }
+        if(cart.length===0) { alert("Корзина пуста"); return; }
+        let form = promptForForm(false);
+    };
+    function promptForForm(isDelivery) {
+        let modalHtml = `<div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000;"><div style="background:white; border-radius:32px; padding:25px; width:90%; max-width:500px;"><h3>${isDelivery ? 'Оформление доставки' : 'Бронирование (самовывоз)'}</h3>${createOrderForm(isDelivery)}<div style="display:flex; gap:10px; margin-top:15px;"><button id="submitOrderBtn">Подтвердить</button><button id="closeModal">Отмена</button></div></div></div>`;
+        let div = document.createElement('div');
+        div.innerHTML=modalHtml;
+        document.body.appendChild(div);
+        let submit = div.querySelector("#submitOrderBtn");
+        submit.onclick = () => {
+            let fullName=div.querySelector("#fullName")?.value||"Аноним";
+            let address=isDelivery?div.querySelector("#address")?.value:"Самовывоз";
+            let date=div.querySelector("#date")?.value;
+            let time=div.querySelector("#time")?.value;
+            let phone=div.querySelector("#phone")?.value;
+            let comment=div.querySelector("#comment")?.value;
+            let payment=div.querySelector("#payment")?.value;
+            let orderDetails = {items: [...cart], total: cart.reduce((sum,it)=>sum+ (products.find(p=>p.id===it.id)?.price||0)*it.quantity,0), fullName,address,date,time,phone,comment,payment, type: isDelivery ? "доставка" : "бронирование"};
+            currentUser.orders = currentUser.orders || [];
+            currentUser.orders.push(orderDetails);
+            // списываем товары со склада
+            cart.forEach(c => {
+                let prod = products.find(p=>p.id===c.id);
+                if(prod) prod.stock = Math.max(0, prod.stock - c.quantity);
+            });
+            clearCart();
+            saveData();
+            alert("Заказ оформлен!");
+            document.body.removeChild(div);
+            renderShop(); renderCart(); renderUserProfile();
+        };
+        div.querySelector("#closeModal").onclick = () => document.body.removeChild(div);
+    }
+    // Лотерея
+    function buyLottery() {
+        if(!currentUser) { alert("Войдите"); return; }
+        let count = parseInt(document.getElementById("ticketCount").value);
+        if(isNaN(count)) count=1;
+        if(count<1 || count>5) { alert("Количество билетов от 1 до 5"); return; }
+        let currentTickets = currentUser.lotteryTickets || 0;
+        if(currentTickets + count > 5) { alert("Нельзя купить более 5 билетов на человека!"); return; }
+        // оплата
+        let payMethod = confirm("Оплатить картой онлайн / перевод? (Для демо нажмите ОК)");
+        if(payMethod){
+            currentUser.lotteryTickets = currentTickets+count;
+            saveData();
+            document.getElementById("lotteryMsg").innerText = `Куплено ${count} билетов. Удачи!`;
+            renderUserProfile();
+        }
+    }
+    // админ редакт лотереи
+    function updateLotteryInfo(){
+        let newTitle = document.getElementById("editLotteryTitle").value;
+        let newDesc = document.getElementById("editLotteryDesc").value;
+        if(newTitle) lotteryInfo.title = newTitle;
+        if(newDesc) lotteryInfo.description = newDesc;
+        saveData();
+        renderLotteryPage();
+        alert("Лотерея обновлена");
+    }
+    function renderLotteryPage(){
+        let container = document.getElementById("lotteryInfo");
+        if(container){
+            container.innerHTML = `<h2>${lotteryInfo.title}</h2><p>${lotteryInfo.description}</p><h3>🏆 Возможный выигрыш: ${lotteryInfo.win}</h3><p>Цена билета: 150 руб.</p><div><label>Количество билетов (1-5): </label><input type="number" id="ticketCount" min="1" max="5" value="1"><button id="buyLotteryBtn" class="btn btn-primary">Купить билет (картой онлайн / перевод)</button></div><p id="lotteryMsg" style="margin-top: 10px;"></p>`;
+            document.getElementById("buyLotteryBtn")?.addEventListener("click", buyLottery);
+        }
+        document.getElementById("editLotteryTitle").value = lotteryInfo.title;
+        document.getElementById("editLotteryDesc").value = lotteryInfo.description;
+    }
+    function renderUserProfile(){
+        if(!currentUser) { document.getElementById("profileOrders").innerHTML="<strong>Войдите в аккаунт</strong>"; return; }
+        let ordersHtml = currentUser.orders?.length ? currentUser.orders.map((o,i)=>`${i+1}. ${o.type} на сумму ${o.total}₽ (${o.fullName})`).join("<br>") : "Нет заказов";
+        let tickets = currentUser.lotteryTickets || 0;
+        let purchasesHtml = "—";
+        document.getElementById("ordersList").innerHTML = ordersHtml;
+        document.getElementById("ticketsList").innerHTML = `Приобретено билетов: ${tickets}`;
+        document.getElementById("ticketsCount").innerHTML = tickets;
+        document.getElementById("purchasesList").innerHTML = purchasesHtml;
+    }
+    // админ товары
+    function renderAdminProducts(){
+        let container = document.getElementById("adminProductsList");
+        if(!container) return;
+        container.innerHTML = products.map(p=>`<div style="border-bottom:1px solid gray;"><b>${p.name}</b> (${p.category}) цена:${p.price} руб., остаток:${p.stock}<button onclick="deleteProduct(${p.id})">Удалить</button></div>`).join("");
+    }
+    window.deleteProduct = (id)=>{
+        products = products.filter(p=>p.id!==id);
+        saveData();
+        renderShop();
+        renderAdminProducts();
+    };
+    document.getElementById("addProductBtn")?.addEventListener("click",()=>{
+        let name = document.getElementById("newProductName").value;
+        let cat = document.getElementById("newProductCategory").value;
+        let price = parseFloat(document.getElementById("newProductPrice").value);
+        let stock = parseInt(document.getElementById("newProductStock").value);
+        let desc = document.getElementById("newProductDesc").value;
+        if(!name||!cat||isNaN(price)){alert("Заполните поля");return;}
+        let newId = Date.now();
+        products.push({id:newId, name, category:cat, price, stock, desc, img:"https://via.placeholder.com/200?text=Новый"});
+        saveData();
+        renderShop();
+        renderAdminProducts();
+    });
+    // Аутентификация
+    function showAuthModal(isReg){
+        let title = isReg ? "Регистрация" : "Вход";
+        let html = `<div style="position:fixed; top:0; left:0; background:rgba(0,0,0,0.5); width:100%;height:100%; display:flex; align-items:center; justify-content:center; z-index:2000;"><div style="background:white; border-radius:30px; padding:30px;"><h3>${title}</h3><input id="authLogin" placeholder="Логин"><input id="authPass" type="password" placeholder="Пароль"><div style="margin-top:15px"><button id="authSubmit">OK</button><button id="authCancel">Отмена</button></div></div></div>`;
+        let div=document.createElement("div"); div.innerHTML=html; document.body.appendChild(div);
+        let submit=div.querySelector("#authSubmit");
+        submit.onclick=()=>{
+            let login=div.querySelector("#authLogin").value;
+            let pass=div.querySelector("#authPass").value;
+            if(isReg){
+                if(users.find(u=>u.login===login)) alert("Логин занят");
+                else { let newUser = {login, password:pass, isAdmin:false, purchases:[], orders:[], lotteryTickets:0}; users.push(newUser); currentUser=newUser; saveData(); alert("Регистрация успешна"); updateUI(); }
+            } else {
+                let user = users.find(u=>u.login===login && u.password===pass);
+                if(user) { currentUser=user; saveData(); updateUI(); alert(`Добро пожаловать, ${login}`); }
+                else alert("Неверные данные");
+            }
+            document.body.removeChild(div);
+        };
+        div.querySelector("#authCancel").onclick = ()=>document.body.removeChild(div);
+    }
+    function logout(){
+        currentUser=null; localStorage.removeItem("currentUser"); updateUI(); alert("Вы вышли"); cart=[]; renderCart();
+    }
+    function updateUI(){
+        let authDiv=document.getElementById("authWidget");
+        let loginBtn=document.getElementById("loginBtn");
+        let regBtn=document.getElementById("registerBtn");
+        let logoutBtn=document.getElementById("logoutBtn");
+        let userNameSpan=document.getElementById("userNameDisplay");
+        let adminLink=document.getElementById("adminNavLink");
+        if(currentUser){
+            loginBtn.style.display="none"; regBtn.style.display="none"; logoutBtn.style.display="inline-block"; userNameSpan.style.display="inline-block";
+            userNameSpan.innerText=currentUser.login; adminLink.style.display = currentUser.isAdmin ? "inline-block" : "none";
+        } else {
+            loginBtn.style.display="inline-block"; regBtn.style.display="inline-block"; logoutBtn.style.display="none"; userNameSpan.style.display="none";
+            adminLink.style.display="none";
+        }
+        renderUserProfile();
+        if(currentUser?.isAdmin) renderAdminProducts();
+    }
+    function initMap(){
+        if(typeof ymaps !== 'undefined'){ ymaps.ready(()=>{ let map=new ymaps.Map("map",{center:[58.725537,98.988272],zoom:12}); let placemark=new ymaps.Placemark([58.725537,98.988272],{balloonContent:"Халва магазин"}); map.geoObjects.add(placemark); });}
+        else document.getElementById("map").innerHTML = "<div style='background:#e9dbc9;text-align:center;padding:100px'>Интерактивная карта (API ключ)</div>";
+    }
+    function bindNav(){
+        document.querySelectorAll("nav a").forEach(link=>{
+            link.addEventListener("click",(e)=>{
+                let pageId=link.dataset.page;
+                document.querySelectorAll(".page").forEach(page=>page.classList.remove("active-page"));
+                document.getElementById(pageId+"Page").classList.add("active-page");
+                if(pageId==="admin" && currentUser?.isAdmin) renderAdminProducts();
+                if(pageId==="profile") renderUserProfile();
+                if(pageId==="cart") renderCart();
+                if(pageId==="shop") renderShop();
+                if(pageId==="lottery") renderLotteryPage();
+            });
+        });
+    }
+    loadData();
+    bindNav();
+    document.getElementById("loginBtn").onclick=()=>showAuthModal(false);
+    document.getElementById("registerBtn").onclick=()=>showAuthModal(true);
+    document.getElementById("logoutBtn").onclick=logout;
+    document.getElementById("categoryFilter")?.addEventListener("change",renderShop);
+    document.getElementById("searchInput")?.addEventListener("input",renderShop);
+    document.getElementById("updateLotteryBtn")?.addEventListener("click",updateLotteryInfo);
+    document.getElementById("refreshAdminProducts")?.addEventListener("click",()=>renderAdminProducts());
+    renderShop(); renderCart(); updateUI(); setTimeout(initMap,300);
+</script>
+</body>
+</html>
