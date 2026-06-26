@@ -454,6 +454,64 @@
             renderUserProfile();
         }
     }
+
+        // --- Админ: заказы, товары ---
+    function renderAdminOrders() {
+        let container = document.getElementById("adminOrdersList");
+        if(!container) return;
+        let allOrders = [];
+        users.forEach(u => {
+            if(u.orders && u.orders.length) {
+                u.orders.forEach((o, idx) => {
+                    allOrders.push({ user: u.login, order: o, idx: idx });
+                });
+            }
+        });
+        if(allOrders.length === 0) {
+            container.innerHTML = "<p>Заказов нет</p>";
+            return;
+        }
+        container.innerHTML = allOrders.map((item, index) => `
+            <div class="order-item">
+                <b>${item.user}</b> | ${item.order.type} | ${item.order.fullName} | ${item.order.address} | ${item.order.phone} | ${item.order.payment}
+                <br>Состав: ${item.order.items.map(it=>`${it.name} x${it.quantity}`).join(', ')} | Итого: ${item.order.total}₽
+                <br><small>${item.order.dateCreated || ''}</small>
+            </div>
+        `).join('');
+    }
+
+    function renderAdminProducts(){
+        let container = document.getElementById("adminProductsList");
+        if(!container) return;
+        container.innerHTML = products.map(p => `
+            <div style="border-bottom:1px solid #6b5a48; padding:6px 0; display:flex; justify-content:space-between; flex-wrap:wrap;">
+                <span><b>${p.name}</b> (${p.category}) — ${p.price}₽, остаток: ${p.stock}</span>
+                <button onclick="deleteProduct(${p.id})" class="btn" style="background:#b33;">Удалить</button>
+            </div>
+        `).join("");
+    }
+    window.deleteProduct = (id)=>{
+        if(!confirm("Удалить товар?")) return;
+        products = products.filter(p=>p.id!==id);
+        saveData();
+        renderShop();
+        renderAdminProducts();
+    };
+    document.getElementById("addProductBtn")?.addEventListener("click",()=>{
+        let name = document.getElementById("newProductName").value;
+        let cat = document.getElementById("newProductCategory").value;
+        let price = parseFloat(document.getElementById("newProductPrice").value);
+        let stock = parseInt(document.getElementById("newProductStock").value);
+        let desc = document.getElementById("newProductDesc").value;
+        if(!name||!cat||isNaN(price)){alert("Заполните название, категорию и цену");return;}
+        let newId = Date.now();
+        products.push({id:newId, name, category:cat, price, stock, desc, img:"https://via.placeholder.com/200?text=Новый"});
+        saveData();
+        renderShop();
+        renderAdminProducts();
+    });
+    document.getElementById("refreshAdminProducts")?.addEventListener("click", ()=>{ renderAdminProducts(); });
+
     // админ редакт лотереи
     function updateLotteryInfo(){
         let newTitle = document.getElementById("editLotteryTitle").value;
