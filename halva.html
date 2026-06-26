@@ -541,13 +541,43 @@
         document.getElementById("ticketsCount").innerHTML = tickets;
         document.getElementById("purchasesList").innerHTML = purchasesHtml;
     }
-    // админ товары
+   // --- Админ: заказы, товары ---
+    function renderAdminOrders() {
+        let container = document.getElementById("adminOrdersList");
+        if(!container) return;
+        let allOrders = [];
+        users.forEach(u => {
+            if(u.orders && u.orders.length) {
+                u.orders.forEach((o, idx) => {
+                    allOrders.push({ user: u.login, order: o, idx: idx });
+                });
+            }
+        });
+        if(allOrders.length === 0) {
+            container.innerHTML = "<p>Заказов нет</p>";
+            return;
+        }
+        container.innerHTML = allOrders.map((item, index) => `
+            <div class="order-item">
+                <b>${item.user}</b> | ${item.order.type} | ${item.order.fullName} | ${item.order.address} | ${item.order.phone} | ${item.order.payment}
+                <br>Состав: ${item.order.items.map(it=>`${it.name} x${it.quantity}`).join(', ')} | Итого: ${item.order.total}₽
+                <br><small>${item.order.dateCreated || ''}</small>
+            </div>
+        `).join('');
+    }
+
     function renderAdminProducts(){
         let container = document.getElementById("adminProductsList");
         if(!container) return;
-        container.innerHTML = products.map(p=>`<div style="border-bottom:1px solid gray;"><b>${p.name}</b> (${p.category}) цена:${p.price} руб., остаток:${p.stock}<button onclick="deleteProduct(${p.id})">Удалить</button></div>`).join("");
+        container.innerHTML = products.map(p => `
+            <div style="border-bottom:1px solid #6b5a48; padding:6px 0; display:flex; justify-content:space-between; flex-wrap:wrap;">
+                <span><b>${p.name}</b> (${p.category}) — ${p.price}₽, остаток: ${p.stock}</span>
+                <button onclick="deleteProduct(${p.id})" class="btn" style="background:#b33;">Удалить</button>
+            </div>
+        `).join("");
     }
     window.deleteProduct = (id)=>{
+        if(!confirm("Удалить товар?")) return;
         products = products.filter(p=>p.id!==id);
         saveData();
         renderShop();
@@ -559,22 +589,25 @@
         let price = parseFloat(document.getElementById("newProductPrice").value);
         let stock = parseInt(document.getElementById("newProductStock").value);
         let desc = document.getElementById("newProductDesc").value;
-        if(!name||!cat||isNaN(price)){alert("Заполните поля");return;}
+        if(!name||!cat||isNaN(price)){alert("Заполните название, категорию и цену");return;}
         let newId = Date.now();
         products.push({id:newId, name, category:cat, price, stock, desc, img:"https://via.placeholder.com/200?text=Новый"});
         saveData();
         renderShop();
         renderAdminProducts();
     });
-    // Аутентификация
+    document.getElementById("refreshAdminProducts")?.addEventListener("click", ()=>{ renderAdminProducts(); });
+
+    // --- Аутентификация ---
     function showAuthModal(isReg){
         let title = isReg ? "Регистрация" : "Вход";
-        let html = `<div style="position:fixed; top:0; left:0; background:rgba(0,0,0,0.5); width:100%;height:100%; display:flex; align-items:center; justify-content:center; z-index:2000;"><div style="background:white; border-radius:30px; padding:30px;"><h3>${title}</h3><input id="authLogin" placeholder="Логин"><input id="authPass" type="password" placeholder="Пароль"><div style="margin-top:15px"><button id="authSubmit">OK</button><button id="authCancel">Отмена</button></div></div></div>`;
+        let html = `<div style="position:fixed; top:0; left:0; background:rgba(0,0,0,0.5); width:100%;height:100%; display:flex; align-items:center; justify-content:center; z-index:2000;"><div style="background:white; border-radius:30px; padding:30px; min-width:280px;"><h3>${title}</h3><input id="authLogin" placeholder="Логин" style="width:100%;padding:10px;margin:8px 0;border-radius:20px;border:1px solid #ccc;"><input id="authPass" type="password" placeholder="Пароль" style="width:100%;padding:10px;margin:8px 0;border-radius:20px;border:1px solid #ccc;"><div style="display:flex;gap:12px;margin-top:12px;"><button id="authSubmit" class="btn btn-primary">OK</button><button id="authCancel" class="btn">Отмена</button></div></div></div>`;
         let div=document.createElement("div"); div.innerHTML=html; document.body.appendChild(div);
         let submit=div.querySelector("#authSubmit");
         submit.onclick=()=>{
-            let login=div.querySelector("#authLogin").value;
-            let pass=div.querySelector("#authPass").value;
+            let login=div.querySelector("#authLogin").value.trim();
+            let pass=div.querySelector("#authPass").value.trim();
+            if(!login || !pass){ alert("Заполните все поля"); return; }
             if(isReg){
                 if(users.find(u=>u.login===login)) alert("Логин занят");
                 else { let newUser = {login, password:pass, isAdmin:false, purchases:[], orders:[], lotteryTickets:0}; users.push(newUser); currentUser=newUser; saveData(); alert("Регистрация успешна"); updateUI(); }
@@ -591,7 +624,6 @@
         currentUser=null; localStorage.removeItem("currentUser"); updateUI(); alert("Вы вышли"); cart=[]; renderCart();
     }
     function updateUI(){
-        let authDiv=document.getElementById("authWidget");
         let loginBtn=document.getElementById("loginBtn");
         let regBtn=document.getElementById("registerBtn");
         let logoutBtn=document.getElementById("logoutBtn");
@@ -600,15 +632,23 @@
         if(currentUser){
             loginBtn.style.display="none"; regBtn.style.display="none"; logoutBtn.style.display="inline-block"; userNameSpan.style.display="inline-block";
             userNameSpan.innerText=currentUser.login; adminLink.style.display = currentUser.isAdmin ? "inline-block" : "none";
+            if(currentUser.isAdmin) {
+                renderAdminOrders();
+                renderAdminProducts();
+                document.getElementById("adminLotterySection").style.display = "block";
+            } else {
+                document.getElementById("adminLotterySection").style.display = "none";
+            }
         } else {
             loginBtn.style.display="inline-block"; regBtn.style.display="inline-block"; logoutBtn.style.display="none"; userNameSpan.style.display="none";
-            adminLink.style.display="none";
+            adminLink.style.display="none"; document.getElementById("adminLotterySection").style.display = "none";
         }
         renderUserProfile();
-        if(currentUser?.isAdmin) renderAdminProducts();
     }
+
+    // --- Карта, навигация ---
     function initMap(){
-        if(typeof ymaps !== 'undefined'){ ymaps.ready(()=>{ let map=new ymaps.Map("map",{center:[58.725537,98.988272],zoom:12}); let placemark=new ymaps.Placemark([58.725537,98.988272],{balloonContent:"Халва магазин"}); map.geoObjects.add(placemark); });}
+        if(typeof ymaps !== 'undefined'){ ymaps.ready(()=>{ let map=new ymaps.Map("map",{center:[55.751574,37.573856],zoom:12}); let placemark=new ymaps.Placemark([55.751574,37.573856],{balloonContent:"Халва магазин"}); map.geoObjects.add(placemark); });}
         else document.getElementById("map").innerHTML = "<div style='background:#e9dbc9;text-align:center;padding:100px'>Интерактивная карта (API ключ)</div>";
     }
     function bindNav(){
@@ -617,7 +657,7 @@
                 let pageId=link.dataset.page;
                 document.querySelectorAll(".page").forEach(page=>page.classList.remove("active-page"));
                 document.getElementById(pageId+"Page").classList.add("active-page");
-                if(pageId==="admin" && currentUser?.isAdmin) renderAdminProducts();
+                if(pageId==="admin" && currentUser?.isAdmin) { renderAdminOrders(); renderAdminProducts(); }
                 if(pageId==="profile") renderUserProfile();
                 if(pageId==="cart") renderCart();
                 if(pageId==="shop") renderShop();
@@ -632,8 +672,6 @@
     document.getElementById("logoutBtn").onclick=logout;
     document.getElementById("categoryFilter")?.addEventListener("change",renderShop);
     document.getElementById("searchInput")?.addEventListener("input",renderShop);
-    document.getElementById("updateLotteryBtn")?.addEventListener("click",updateLotteryInfo);
-    document.getElementById("refreshAdminProducts")?.addEventListener("click",()=>renderAdminProducts());
     renderShop(); renderCart(); updateUI(); setTimeout(initMap,300);
 </script>
 </body>
